@@ -20,10 +20,16 @@ export default function Navbar() {
         {user ? (
           <>
             <span className="nav-user">
-              {user.name} {isAdmin && <span className="badge badge-admin">admin</span>}
+              <span className="nav-avatar" aria-hidden="true">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+              <span className="nav-user-meta">
+                <span className="nav-user-name">{user.name}</span>
+                <span className={`badge badge-${isAdmin ? 'admin' : 'customer'}`}>
+                  {isAdmin ? 'Admin' : 'Customer'}
+                </span>
+              </span>
             </span>
-            {isAdmin && <Link to="/admin">Admin</Link>}
-            {!isAdmin && <Link to="/">My Reservations</Link>}
             <Button variant="secondary" onClick={handleLogout}>
               Logout
             </Button>

@@ -30,6 +30,7 @@ export default function RegisterPage() {
   return (
     <div className="auth-page">
       <Card title="Create an account" className="auth-card">
+        <p className="muted auth-subtitle">Sign up to book and manage your reservations.</p>
         <Alert>{error}</Alert>
         <form onSubmit={handleSubmit}>
           <Input
@@ -56,11 +57,11 @@ export default function RegisterPage() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="btn-block">
             {loading ? 'Creating…' : 'Register'}
           </Button>
         </form>
-        <p className="muted">
+        <p className="muted auth-switch">
           Already have an account? <Link to="/login">Login</Link>
         </p>
       </Card>

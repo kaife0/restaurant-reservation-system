@@ -8,6 +8,7 @@ import Button from '../components/Button';
 import Alert from '../components/Alert';
 import Loader from '../components/Loader';
 import ReservationTable from '../components/ReservationTable';
+import PageHeader from '../components/PageHeader';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -75,6 +76,10 @@ export default function CustomerDashboard() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Book a Table"
+        subtitle="Reserve a table for your preferred date and time slot."
+      />
       <Card title="Book a table">
         <Alert>{error}</Alert>
         <Alert type="success">{success}</Alert>

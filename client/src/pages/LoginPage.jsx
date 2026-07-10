@@ -13,12 +13,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const submit = async (email, password) => {
     setError('');
     setLoading(true);
     try {
-      const user = await login(form.email, form.password);
+      const user = await login(email, password);
       navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -27,9 +26,15 @@ export default function LoginPage() {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    submit(form.email, form.password);
+  };
+
   return (
     <div className="auth-page">
-      <Card title="Login" className="auth-card">
+      <Card title="Welcome back" className="auth-card">
+        <p className="muted auth-subtitle">Log in to manage your table reservations.</p>
         <Alert>{error}</Alert>
         <form onSubmit={handleSubmit}>
           <Input
@@ -48,12 +53,12 @@ export default function LoginPage() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="btn-block">
             {loading ? 'Logging in…' : 'Login'}
           </Button>
         </form>
-        <p className="muted">
-          No account? <Link to="/register">Register</Link>
+        <p className="muted auth-switch">
+          No account? <Link to="/register">Create one</Link>
         </p>
       </Card>
     </div>

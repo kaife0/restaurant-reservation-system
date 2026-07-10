@@ -6,6 +6,7 @@ import Button from '../components/Button';
 import Alert from '../components/Alert';
 import Loader from '../components/Loader';
 import ReservationTable from '../components/ReservationTable';
+import PageHeader from '../components/PageHeader';
 
 export default function AdminDashboard() {
   const [reservations, setReservations] = useState(null);
@@ -72,6 +73,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Admin Panel"
+        subtitle="Oversee every reservation and manage the restaurant's tables."
+        badge="Admin"
+      />
       <Card title="All Reservations">
         <Alert>{error}</Alert>
         <form onSubmit={handleFilter} className="filter-form">
