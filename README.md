@@ -22,7 +22,16 @@ restaurant-reservation-system/
 
 ### Prerequisites
 - Node.js 20+
-- A MongoDB connection string (local `mongod` or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster)
+- A MongoDB connection string — for local development, either:
+  - a local `mongod` / Docker container (see below), or
+  - a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster (**required for deployment** — a locally-running database isn't reachable from Render/Railway)
+
+Quickest local option, using Docker:
+```bash
+docker run -d --name restaurant-mongo -p 27017:27017 -v restaurant_mongo_data:/data/db mongo:7
+# then in server/.env: MONGO_URI=mongodb://127.0.0.1:27017/restaurant
+```
+The named volume (`restaurant_mongo_data`) persists data across container restarts.
 
 ### 1. Backend
 
@@ -106,7 +115,6 @@ Cancelling a reservation sets `status: 'cancelled'` rather than deleting it (so 
 - No pagination on reservation/table lists — fine at this scale, would need it for a real multi-table, high-volume restaurant.
 - Table capacity is treated as a hard minimum (`capacity >= guests`); there's no "best-fit" table suggestion — the customer picks manually from whatever is available.
 - No password-reset flow.
-- `server/dev-mongo.js` is a local-only helper (in-memory MongoDB) used during development when no real `MONGO_URI` is configured — it is not used in production and can be deleted for submission if you always use Atlas locally too.
 
 ## Areas for Improvement (with more time)
 
