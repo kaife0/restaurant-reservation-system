@@ -1,97 +1,117 @@
 # Restaurant Reservation Management System
 
-A full-stack reservation system for a single restaurant with fixed tables. Customers book tables for a date/time slot; admins oversee and manage all bookings.
+A full-stack reservation system for a single restaurant with a fixed set of tables. Customers book tables for a date and time slot; administrators oversee and manage every reservation and the tables themselves.
 
-**Stack:** React (Vite) · Node.js/Express · MongoDB (Mongoose) · JWT auth
+**Stack:** React (Vite) · Node.js / Express · MongoDB (Mongoose) · JWT authentication
 
 ## Live Demo
 
-- Frontend: `<add your Vercel/Netlify URL here>`
-- Backend API: `<add your Render/Railway URL here>`
-- Admin login: `admin@restaurant.com` / `Admin@123` (seeded — change after first deploy)
+- **Frontend:** `<add your Vercel URL here>`
+- **Backend API:** `<add your Render URL here>`
+- **Admin login:** `admin@restaurant.com` / `Admin@123` _(seeded — change the password after first deploy)_
+- **Customer:** register any account from the Register page.
 
 ## Project Structure
 
 ```
 restaurant-reservation-system/
-  server/   Express API (MongoDB via Mongoose, JWT auth, role-based routes)
-  client/   React app (Vite, React Router, Axios)
+├── server/                      # Express REST API
+│   ├── server.js                # app entry: security middleware, routes, DB connect
+│   ├── constants.js             # the fixed time slots
+│   ├── seed.js                  # seeds 6 tables + one admin user
+│   ├── config/db.js             # Mongoose connection
+│   ├── models/                  # User, Table, Reservation (schemas + indexes)
+│   ├── controllers/             # request handling + business logic
+│   ├── routes/                  # REST endpoints, wired to auth middleware
+│   ├── middleware/
+│   │   ├── auth.js              # protect (JWT) + authorize(role) guards
+│   │   ├── rateLimiter.js       # brute-force protection on auth routes
+│   │   └── errorHandler.js      # centralized error → JSON + status codes
+│   └── utils/                   # ApiError, asyncHandler, generateToken
+└── client/                      # React single-page app
+    └── src/
+        ├── api/axios.js         # axios instance: attaches JWT, auto-logout on 401
+        ├── context/AuthContext.jsx   # auth state (login/register/logout, role)
+        ├── components/          # reusable UI (Button, Input, Card, Badge, …)
+        └── pages/               # LoginPage, RegisterPage, CustomerDashboard, AdminDashboard
 ```
 
 ## Setup Instructions
 
 ### Prerequisites
 - Node.js 20+
-- A MongoDB connection string — for local development, either:
-  - a local `mongod` / Docker container (see below), or
-  - a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster (**required for deployment** — a locally-running database isn't reachable from Render/Railway)
-
-Quickest local option, using Docker:
-```bash
-docker run -d --name restaurant-mongo -p 27017:27017 -v restaurant_mongo_data:/data/db mongo:7
-# then in server/.env: MONGO_URI=mongodb://127.0.0.1:27017/restaurant
-```
-The named volume (`restaurant_mongo_data`) persists data across container restarts.
+- A MongoDB connection string. A free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster is recommended (and **required for deployment**, since a locally-running database isn't reachable from a hosting platform). A local `mongod` or Docker container also works for development.
 
 ### 1. Backend
 
 ```bash
 cd server
 npm install
-cp .env.example .env    # fill in MONGO_URI and JWT_SECRET
-npm run seed             # creates 6 tables + one admin user
-npm run dev               # http://localhost:5000
+cp .env.example .env      # then fill in the values below
+npm run seed              # creates 6 tables + the admin user
+npm run dev               # starts on http://localhost:5000
 ```
 
-`.env` values:
+`server/.env` values:
 
 | Key | Description |
 |---|---|
+| `PORT` | API port (default `5000`) |
+| `NODE_ENV` | `development` or `production` |
 | `MONGO_URI` | MongoDB connection string |
-| `JWT_SECRET` | Any long random string |
+| `JWT_SECRET` | Long random string — generate with the command below |
 | `JWT_EXPIRES_IN` | Token lifetime, e.g. `7d` |
-| `CLIENT_URL` | Frontend origin, for CORS |
+| `CLIENT_URL` | Frontend origin, used for CORS (e.g. `http://localhost:5173`) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credentials for the seeded admin account |
+
+Generate a strong `JWT_SECRET`:
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
 
 ### 2. Frontend
 
 ```bash
 cd client
 npm install
-cp .env.example .env    # set VITE_API_URL to your backend's /api URL
-npm run dev               # http://localhost:5173
+cp .env.example .env      # set VITE_API_URL=http://localhost:5000/api
+npm run dev               # starts on http://localhost:5173
 ```
-
-## Deployment
-
-- **Backend** → Render/Railway as a Node web service. Set `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL` (your deployed frontend origin) as environment variables. Run `npm run seed` once (e.g. via a one-off shell/job) against the production database to create tables and the admin account.
-- **Frontend** → Vercel/Netlify. Set `VITE_API_URL` to the deployed backend's `/api` URL.
-- **Database** → MongoDB Atlas free tier.
 
 ## Assumptions
 
-- Single restaurant, fixed set of tables seeded via `npm run seed` (not created by customers).
-- Reservations use **fixed time slots** (`12:00-13:30`, `13:30-15:00`, `19:00-20:30`, `20:30-22:00`) rather than arbitrary start/end times — this keeps overlap detection exact and simple, matching the assignment's scope (no partial-slot overlaps to reason about).
-- Self-registration always creates a `customer` account; the `admin` role is only assigned via the seed script (or manually in the DB) — there's no public "become an admin" path.
-- A reservation's `date` is a plain `YYYY-MM-DD` string, not a timezone-aware `Date`, to avoid timezone drift between browser and server.
+- **Single restaurant** with a fixed set of tables, seeded via `npm run seed` (customers cannot create tables).
+- Reservations use **fixed time slots** (`12:00-13:30`, `13:30-15:00`, `19:00-20:30`, `20:30-22:00`) rather than arbitrary start/end times. This keeps overlap detection exact and simple — there are no partial-slot overlaps to reason about.
+- **Self-registration always creates a `customer`.** The `admin` role is only assigned by the seed script (or manually in the DB); there is no public path to become an admin.
+- A reservation's `date` is stored as a plain `YYYY-MM-DD` string (not a timezone-aware `Date`) to avoid timezone drift between browser and server.
+- A cancelled reservation is kept (status flips to `cancelled`) rather than deleted, so its table/slot frees up while history is preserved for admins.
 
 ## Reservation & Availability Logic
 
-The key requirement — **prevent double bookings** — is enforced in two layers:
+Preventing double bookings — the core requirement — is enforced in **two layers**:
 
-1. **Application-level checks** (`server/controllers/reservationController.js`): the requested table must exist, its `capacity` must be ≥ the requested `guests`, the date must not be in the past, and the slot must be one of the fixed values.
-2. **Database-level guarantee** (`server/models/Reservation.js`): a **partial unique index** on `{ table, date, slot }`, scoped to `status: 'active'`, means MongoDB itself rejects a second active reservation for the same table/date/slot — even if two requests race each other at the exact same moment. This is deliberately *not* a "check for conflicts, then insert" pattern, because that has a race window under concurrent requests; the unique index makes the guarantee atomic. A conflicting request gets a `409 Conflict` with a clear message (translated from MongoDB's duplicate-key error in `middleware/errorHandler.js`).
+1. **Application checks** (`controllers/reservationController.js`): the table must exist, its `capacity` must be ≥ the requested `guests`, the date cannot be in the past, and the slot must be one of the fixed values.
+2. **Database guarantee** (`models/Reservation.js`): a **partial unique index** on `{ table, date, slot }`, scoped to `status: 'active'`. MongoDB itself rejects a second *active* reservation for the same table/date/slot — even if two requests race at the exact same moment. This is deliberately **not** a "check-then-insert" pattern (which has a race window); the unique index makes the guarantee atomic. A conflict surfaces as **`409 Conflict`** with a clear message, translated from MongoDB's duplicate-key error in `middleware/errorHandler.js`.
 
-Cancelling a reservation sets `status: 'cancelled'` rather than deleting it (so the same table/date/slot becomes bookable again, and history is preserved for admins).
-
-`GET /api/tables/available?date=&slot=&guests=` combines both rules for the customer-facing UI: it excludes tables with an active reservation for that date+slot, and filters by capacity, before the user ever picks a table — so in practice conflicts are rare, and the unique index is the last line of defense rather than the primary UX.
+`GET /api/tables/available?date=&slot=&guests=` combines both rules for the booking UI: it returns only tables that have no active reservation for that date+slot **and** whose capacity fits the party. So the customer usually never hits a conflict — the unique index is the last line of defense, not the primary UX.
 
 ## Role-Based Access (Customer vs Admin)
 
-- JWT payload carries the user's `role`. `middleware/auth.js` exposes `protect` (must be logged in) and `authorize('admin')` (must be an admin), composed per-route.
-- Customers can only ever see/cancel **their own** reservations (`GET/DELETE /api/reservations/me`, `.../:id` scoped by `user: req.user._id`).
-- Admin-only routes (`GET /api/reservations` [all, optional `?date=`], `PUT /api/reservations/:id`, table CRUD) are gated with `authorize('admin')` and return `403` for customers.
-- On the frontend, `ProtectedRoute` redirects unauthenticated users to `/login` and non-admins away from `/admin`; the navbar and dashboard shown are role-aware (`AuthContext`).
+- The JWT payload carries the user's `id` and `role`. `middleware/auth.js` provides `protect` (must be authenticated) and `authorize('admin')` (must be an admin), composed per route.
+- **Customers** can only create, view, and cancel **their own** reservations — every query is scoped to `user: req.user._id`.
+- **Admin-only** routes (view all reservations, filter by date, update/cancel any reservation, table CRUD) are gated with `authorize('admin')` and return `403` for customers.
+- On the frontend, `ProtectedRoute` redirects unauthenticated users to `/login` and non-admins away from `/admin`. The navbar, role badge, and dashboard are role-aware, so a customer sees the booking view and an admin sees the management panel.
+
+## Security
+
+- **Passwords** are hashed with bcrypt (`User` model pre-save hook) and never returned in any response.
+- **JWT** auth with the secret and token lifetime supplied via environment variables — no secrets in code (`.env` is gitignored; `.env.example` ships placeholders only).
+- **Role escalation is impossible via the API** — the register endpoint ignores any client-supplied role.
+- **`helmet`** sets hardened HTTP security headers on every response.
+- **Rate limiting** (`express-rate-limit`) throttles the `/api/auth` routes to slow brute-force / credential-stuffing.
+- **CORS** is restricted to the configured `CLIENT_URL`.
+- **Auto-logout**: the axios response interceptor clears the session and redirects to login if a request with a stored token returns `401` (expired/revoked token).
+- **Centralized error handling** returns consistent JSON and correct HTTP status codes (`400` validation, `401` auth, `403` forbidden, `404` not found, `409` conflict).
 
 ## API Overview
 
@@ -102,23 +122,28 @@ Cancelling a reservation sets `status: 'cancelled'` rather than deleting it (so 
 | GET | `/api/auth/me` | Authenticated |
 | GET | `/api/tables` | Authenticated |
 | GET | `/api/tables/available?date=&slot=&guests=` | Authenticated |
-| POST/PUT/DELETE | `/api/tables[/:id]` | Admin |
+| POST / PUT / DELETE | `/api/tables[/:id]` | Admin |
 | POST | `/api/reservations` | Authenticated |
 | GET | `/api/reservations/me` | Authenticated |
 | DELETE | `/api/reservations/:id` | Authenticated (own reservation) |
 | GET | `/api/reservations?date=` | Admin |
 | PUT | `/api/reservations/:id` | Admin |
 
+## Deployment
+
+Step-by-step instructions for deploying to Render (backend), Vercel (frontend), and MongoDB Atlas (database) are in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
 ## Known Limitations
 
-- No email/SMS confirmation (explicitly out of scope per the brief).
-- No pagination on reservation/table lists — fine at this scale, would need it for a real multi-table, high-volume restaurant.
-- Table capacity is treated as a hard minimum (`capacity >= guests`); there's no "best-fit" table suggestion — the customer picks manually from whatever is available.
+- No email / SMS confirmation (out of scope per the brief).
+- No pagination on reservation/table lists — fine at this scale, but a high-volume restaurant would need it.
+- Table capacity is a hard minimum (`capacity >= guests`); there's no automatic "best-fit" suggestion — the customer picks from the available tables.
 - No password-reset flow.
+- Render's free tier sleeps after inactivity, so the first request after idle can take a few seconds to wake the backend.
 
 ## Areas for Improvement (with more time)
 
-- Optimistic UI locking / a short "reservation hold" while the customer is picking a table, so the UX for a just-lost race is friendlier than a plain error.
-- Admin ability to edit table capacity/merge tables for large parties (currently a manual table pick).
-- Automated tests (Jest/Supertest for the API, React Testing Library for the UI) — logic was verified manually end-to-end for this submission.
-- Rate limiting and stricter input validation (e.g. via `zod`/`express-validator`) on all endpoints.
+- A short "reservation hold" while the customer is choosing a table, so a just-lost race is friendlier than an error.
+- Admin editing of table capacity and merging tables for large parties.
+- Automated tests (Jest/Supertest for the API, React Testing Library for the UI) — the flows were verified manually end-to-end for this submission.
+- Schema-level request validation (e.g. `zod` / `express-validator`) shared across all endpoints.
