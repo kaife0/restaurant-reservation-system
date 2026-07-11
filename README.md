@@ -6,9 +6,8 @@ A full-stack reservation system for a single restaurant with a fixed set of tabl
 
 ## Live Demo
 
-- **Frontend:** `<add your Vercel URL here>`
-- **Backend API:** `<add your Render URL here>`
-- **Admin login:** `admin@restaurant.com` / `Admin@123` _(seeded — change the password after first deploy)_
+- **Frontend:** `https://restaurant-reservation-system-brown-three.vercel.app`
+- **Admin login:** `admin@restaurant.com` / `Admin@123`
 - **Customer:** register any account from the Register page.
 
 ## Project Structure
@@ -129,9 +128,6 @@ Preventing double bookings — the core requirement — is enforced in **two lay
 | GET | `/api/reservations?date=` | Admin |
 | PUT | `/api/reservations/:id` | Admin |
 
-## Deployment
-
-Step-by-step instructions for deploying to Render (backend), Vercel (frontend), and MongoDB Atlas (database) are in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ## Known Limitations
 
